@@ -5,51 +5,278 @@
  */
 package desafio2media;
 
+import desafio2media.Clases.Libro;
 import desafio2media.conexion.ConexionBD;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.sql.Connection;
-import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.layout.StackPane;
-import javax.swing.JApplet;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Vector;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
  * @author Josue
  */
 public class Desafio2Media extends JApplet {
-    
-    private static final int JFXPANEL_WIDTH_INT = 300;
-    private static final int JFXPANEL_HEIGHT_INT = 250;
-    private static JFXPanel fxContainer;
 
-    /**
-     * @param args the command line arguments
-     */
+    private static Connection conn;
+    private static Statement stmt;
+    private static ResultSet rs;
+    private static boolean mostrarMenu = true;
+
     public static void main(String[] args) {
-         // Intentar establecer una conexión
-        Connection connection = ConexionBD.getConnection();
+        Menu();
+    }
 
-        // Si la conexión es exitosa, connection no será null
-        if (connection != null) {
-            System.out.println("¡Conexión exitosa!");
-            // Aquí puedes realizar operaciones con la base de datos si lo deseas
-
-            // Cerrar la conexión cuando hayas terminado
-            ConexionBD.close(connection);
-        } else {
-            System.out.println("No se pudo establecer la conexión. Revisa los mensajes de error anteriores.");
+    public static void Menu() {
+        while (true) {
+            if (mostrarMenu) {
+                String opcion = JOptionPane.showInputDialog("1. Agregar Material\n2. Modificar Material\n3. Listar Material\n4. Salir");
+                switch (opcion) {
+                    case "1":
+                        agregarMaterial();
+                        break;
+                    case "2":
+                        // Modificar material
+                        break;
+                    case "3":
+                        listarMateriales();
+                        mostrarMenu = false;  // No mostrar el menú mientras se lista los materiales
+                        break;
+                    case "4":
+                        System.exit(0);
+                    default:
+                        JOptionPane.showMessageDialog(null, "Opción no válida");
+                }
+            }
         }
     }
-    
-  
-    
+
+    public static void agregarMaterial() {
+        String[] options = {"Libro", "Revista", "CD", "DVD"};
+        int x = JOptionPane.showOptionDialog(null, "Selecciona el tipo de material que deseas agregar",
+                "Agregar Material",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options, options[0]);
+
+        switch (x) {
+            case 0:
+                agregarLibro();
+                break;
+            case 1:
+//                agregarRevista();
+                break;
+            case 2:
+//                agregarCD();
+                break;
+            case 3:
+//                agregarDVD();
+                break;
+            default:
+                JOptionPane.showMessageDialog(null, "Opción no válida");
+        }
+    }
+
+    public static void agregarLibro() {
+        String id = JOptionPane.showInputDialog("Ingrese el ID del libro:");
+        String titulo = JOptionPane.showInputDialog("Ingrese el título del libro:");
+        int idGenero = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del género del libro:"));
+        int stock = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la cantidad en stock del libro:"));
+        int idAutor = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del autor del libro:"));
+        int idEditorial = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID de la editorial del libro:"));
+        String isbn = JOptionPane.showInputDialog("Ingrese el ISBN del libro:");
+
+        Libro libro = new Libro(id, titulo, idGenero, stock, idAutor, idEditorial, isbn);
+        guardarLibroEnBD(libro);
+    }
+
+    public static void guardarLibroEnBD(Libro libro) {
+        Connection conexion = ConexionBD.getConnection();
+        if (conexion != null) {
+            try {
+                // Insertar en la tabla materiales
+                String sqlMaterial = "INSERT INTO materiales (IdMaterial, Titulo, IdGenero, Stock) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement psMaterial = conexion.prepareStatement(sqlMaterial)) {
+                    psMaterial.setString(1, libro.getId());
+                    psMaterial.setString(2, libro.getTitulo());
+                    psMaterial.setInt(3, libro.getIdGenero());
+                    psMaterial.setInt(4, libro.getStock());
+                    psMaterial.executeUpdate();
+                }
+
+                // Insertar en la tabla materiales_escritos
+                String sqlMaterialEscrito = "INSERT INTO materiales_escritos (IdMaterial, IdAutor, IdEditorial) VALUES (?, ?, ?)";
+                try (PreparedStatement psMaterialEscrito = conexion.prepareStatement(sqlMaterialEscrito)) {
+                    psMaterialEscrito.setString(1, libro.getId());
+                    psMaterialEscrito.setInt(2, libro.getIdAutor());
+                    psMaterialEscrito.setInt(3, libro.getIdEditorial());
+                    psMaterialEscrito.executeUpdate();
+                }
+
+                // Insertar en la tabla libros
+                String sqlLibro = "INSERT INTO libros (IdMaterial, ISBN) VALUES (?, ?)";
+                try (PreparedStatement psLibro = conexion.prepareStatement(sqlLibro)) {
+                    psLibro.setString(1, libro.getId());
+                    psLibro.setString(2, libro.getIsbn());
+                    psLibro.executeUpdate();
+                }
+
+                JOptionPane.showMessageDialog(null, "Libro agregado exitosamente");
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, "Error al agregar el libro: " + e.getMessage());
+            } finally {
+                try {
+                    if (conexion != null && !conexion.isClosed()) {
+                        conexion.close();
+                    }
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(null, "Error al cerrar la conexión: " + e.getMessage());
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "No se pudo establecer la conexión con la base de datos");
+        }
+    }
+
+    public static void listarMateriales() {
+        String[] opciones = {"Listar Todo", "Listar Contenido Escrito", "Listar Contenido Audiovisual", "Volver"};
+        int eleccion = JOptionPane.showOptionDialog(null, "Elige una opción", "Listar Materiales",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, opciones, opciones[0]);
+
+        switch (eleccion) {
+            case 0:
+                listarTodo();
+                break;
+            case 1:
+                listarContenidoEscrito();
+                break;
+            case 2:
+                listarContenidoAudiovisual();
+                break;
+            case 3:
+                mostrarMenu = true;
+
+                Menu();
+                break;
+            default:
+                JOptionPane.showMessageDialog(null, "Opción no válida");
+        }
+        mostrarMenu = true;
+    }
+
+    public static void listarTodo() {
+        String query = "SELECT m.IdMaterial, m.Titulo, g.Nombre as NombreGenero, m.Stock, "
+                + "a.Nombre as NombreAutor, e.Nombre as NombreEditorial, l.ISBN, r.Periodicidad, "
+                + "ma.Duracion, cd.NumCanciones, d.Nombre as NombreDirector "
+                + "FROM materiales m "
+                + "LEFT JOIN generos g ON m.IdGenero = g.IdGenero "
+                + "LEFT JOIN materiales_escritos me ON m.IdMaterial = me.IdMaterial "
+                + "LEFT JOIN autores a ON me.IdAutor = a.IdAutor "
+                + "LEFT JOIN editoriales e ON me.IdEditorial = e.IdEditorial "
+                + "LEFT JOIN libros l ON me.IdMaterial = l.IdMaterial "
+                + "LEFT JOIN revistas r ON me.IdMaterial = r.IdMaterial "
+                + "LEFT JOIN materiales_audiovisuales ma ON m.IdMaterial = ma.IdMaterial "
+                + "LEFT JOIN cds cd ON ma.IdMaterial = cd.IdMaterial "
+                + "LEFT JOIN dvds dvd ON ma.IdMaterial = dvd.IdMaterial "
+                + "LEFT JOIN autores d ON dvd.IdDirector = d.IdAutor";
+        mostrarMateriales(query);
+    }
+
+    public static void listarContenidoEscrito() {
+        String query = "SELECT m.IdMaterial, m.Titulo, g.Nombre as NombreGenero, m.Stock, "
+                + "a.Nombre as NombreAutor, e.Nombre as NombreEditorial, l.ISBN, r.Periodicidad "
+                + "FROM materiales m "
+                + "LEFT JOIN generos g ON m.IdGenero = g.IdGenero "
+                + "LEFT JOIN materiales_escritos me ON m.IdMaterial = me.IdMaterial "
+                + "LEFT JOIN autores a ON me.IdAutor = a.IdAutor "
+                + "LEFT JOIN editoriales e ON me.IdEditorial = e.IdEditorial "
+                + "LEFT JOIN libros l ON me.IdMaterial = l.IdMaterial "
+                + "LEFT JOIN revistas r ON me.IdMaterial = r.IdMaterial "
+                + "WHERE l.IdMaterial IS NOT NULL OR r.IdMaterial IS NOT NULL";
+        mostrarMateriales(query);
+    }
+
+    public static void listarContenidoAudiovisual() {
+        String query = "SELECT m.IdMaterial, m.Titulo, g.Nombre as NombreGenero, m.Stock, "
+                + "ma.Duracion, cd.NumCanciones, d.Nombre as NombreDirector "
+                + "FROM materiales m "
+                + "LEFT JOIN generos g ON m.IdGenero = g.IdGenero "
+                + "LEFT JOIN materiales_audiovisuales ma ON m.IdMaterial = ma.IdMaterial "
+                + "LEFT JOIN cds cd ON ma.IdMaterial = cd.IdMaterial "
+                + "LEFT JOIN dvds dvd ON ma.IdMaterial = dvd.IdMaterial "
+                + "LEFT JOIN autores d ON dvd.IdDirector = d.IdAutor "
+                + "WHERE ma.IdMaterial IS NOT NULL";
+        mostrarMateriales(query);
+    }
+
+    public static void mostrarMateriales(String query) {
+        try {
+            conn = ConexionBD.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+
+            // Obteniendo metadatos para construir las columnas de la tabla
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            Vector<String> columnNames = new Vector<>();
+            for (int column = 1; column <= columnCount; column++) {
+                columnNames.add(metaData.getColumnName(column));
+            }
+
+            // Obteniendo los datos para las filas de la tabla
+            Vector<Vector<Object>> data = new Vector<>();
+            while (rs.next()) {
+                Vector<Object> vector = new Vector<>();
+                for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+                    vector.add(rs.getObject(columnIndex));
+                }
+                data.add(vector);
+            }
+
+            // Creando el modelo de la tabla y configurando la JTable
+            DefaultTableModel model = new DefaultTableModel(data, columnNames);
+            JTable table = new JTable(model);
+            table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF); // Desactivar auto-resize
+            JScrollPane scrollPane = new JScrollPane(table);
+            scrollPane.setPreferredSize(new Dimension(800, 600)); // Ajustar tamaño 
+
+            // Mostrando la ventana con la tabla
+            JFrame frame = new JFrame("Resultados");
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.getContentPane().add(scrollPane);
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent windowEvent) {
+                    listarMateriales();  // Llama al menú una vez que la ventana se ha cerrado completamente
+                }
+            });
+            frame.setVisible(true);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al listar los materiales: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (stmt != null) {
+                    stmt.close();
+                }
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
