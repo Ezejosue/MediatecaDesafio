@@ -29,6 +29,7 @@ public class Desafio2Media extends JApplet {
     private static Connection conn;
     private static Statement stmt;
     private static ResultSet rs;
+    private static PreparedStatement pstmt;
     private static boolean mostrarMenu = true;
 
     public static void main(String[] args) {
@@ -44,7 +45,7 @@ public class Desafio2Media extends JApplet {
                         agregarMaterial();
                         break;
                     case "2":
-                        // Modificar material
+                        modificarMaterial();
                         break;
                     case "3":
                         listarMateriales();
@@ -141,6 +142,197 @@ public class Desafio2Media extends JApplet {
             }
         } else {
             JOptionPane.showMessageDialog(null, "No se pudo establecer la conexión con la base de datos");
+        }
+    }
+
+    public static void modificarMaterial() {
+        String[] tiposDeMaterial = {"Libro", "Revista", "CD", "DVD", "Cancelar"};
+        String tipoMaterial = (String) JOptionPane.showInputDialog(null, "Seleccione el tipo de material que desea modificar:", "Modificar Material", JOptionPane.QUESTION_MESSAGE, null, tiposDeMaterial, tiposDeMaterial[0]);
+
+        if (tipoMaterial != null && !"Cancelar".equals(tipoMaterial)) {
+            String query = "SELECT materiales.IdMaterial, materiales.Titulo FROM materiales ";
+            switch (tipoMaterial) {
+                case "Libro":
+                    query += "INNER JOIN materiales_escritos ON materiales.IdMaterial = materiales_escritos.IdMaterial INNER JOIN libros ON materiales_escritos.IdMaterial = libros.IdMaterial";
+                    break;
+                case "Revista":
+                    query += "INNER JOIN materiales_escritos ON materiales.IdMaterial = materiales_escritos.IdMaterial INNER JOIN revistas ON materiales_escritos.IdMaterial = revistas.IdMaterial";
+                    break;
+                case "CD":
+                    query += "INNER JOIN materiales_audiovisuales ON materiales.IdMaterial = materiales_audiovisuales.IdMaterial INNER JOIN cds ON materiales_audiovisuales.IdMaterial = cds.IdMaterial";
+                    break;
+                case "DVD":
+                    query += "INNER JOIN materiales_audiovisuales ON materiales.IdMaterial = materiales_audiovisuales.IdMaterial INNER JOIN dvds ON materiales_audiovisuales.IdMaterial = dvds.IdMaterial";
+                    break;
+            }
+
+            try {
+                conn = ConexionBD.getConnection();
+                stmt = conn.createStatement();
+                rs = stmt.executeQuery(query);
+
+                DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+                while (rs.next()) {
+                    String idMaterial = rs.getString("IdMaterial");
+                    String titulo = rs.getString("Titulo");
+                    model.addElement(idMaterial + " - " + titulo);
+                }
+
+                JComboBox<String> comboBox = new JComboBox<>(model);
+                int resultado = JOptionPane.showConfirmDialog(null, comboBox, "Seleccione el material a modificar:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+                if (resultado == JOptionPane.OK_OPTION) {
+                    String selectedItem = (String) comboBox.getSelectedItem();
+                    if (selectedItem != null) {
+                        String idMaterial = selectedItem.split(" - ")[0];
+                        mostrarDetallesMaterial(idMaterial);
+                        modificarCampoMaterial(idMaterial, tipoMaterial);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error al obtener la lista de materiales: " + e.getMessage());
+            } finally {
+                try {
+                    if (rs != null) {
+                        rs.close();
+                    }
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                    if (conn != null) {
+                        conn.close();
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void modificarCampoMaterial(String idMaterial, String tipoMaterial) {
+        String[] camposAModificar;
+        switch (tipoMaterial) {
+            case "Libro":
+            case "Revista":
+                camposAModificar = new String[]{"Titulo", "Genero", "Stock", "Autor", "Editorial", "Cancelar"};
+                break;
+            case "CD":
+            case "DVD":
+                camposAModificar = new String[]{"Titulo", "Genero", "Stock", "Duracion", "Cancelar"};
+                break;
+            default:
+                return;
+        }
+
+        String campoAModificar = (String) JOptionPane.showInputDialog(null, "Seleccione el campo que desea modificar:", "Modificar Material", JOptionPane.QUESTION_MESSAGE, null, camposAModificar, camposAModificar[0]);
+
+        if (campoAModificar != null && !"Cancelar".equals(campoAModificar)) {
+            String nuevoValor = JOptionPane.showInputDialog("Ingrese el nuevo valor para " + campoAModificar + ":");
+            if (nuevoValor != null && !nuevoValor.trim().isEmpty()) {
+                actualizarCampoMaterial(idMaterial, campoAModificar, nuevoValor, tipoMaterial);
+            } else {
+                JOptionPane.showMessageDialog(null, "No se ha ingresado un nuevo valor. Cancelando operación.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Operación cancelada.");
+        }
+    }
+
+    public static void actualizarCampoMaterial(String idMaterial, String campoAModificar, String nuevoValor, String tipoMaterial) {
+        String query = "UPDATE materiales SET ";
+        switch (campoAModificar) {
+            case "Titulo":
+            case "Genero":
+            case "Stock":
+                query += campoAModificar + " = ? WHERE IdMaterial = ?";
+                break;
+            case "Autor":
+            case "Editorial":
+                if ("Libro".equals(tipoMaterial) || "Revista".equals(tipoMaterial)) {
+                    query = "UPDATE materiales_escritos SET " + campoAModificar + " = ? WHERE IdMaterial = ?";
+                } else {
+                    JOptionPane.showMessageDialog(null, "Campo no válido para el tipo de material seleccionado.");
+                    return;
+                }
+                break;
+            case "Duracion":
+                if ("CD".equals(tipoMaterial) || "DVD".equals(tipoMaterial)) {
+                    query = "UPDATE materiales_audiovisuales SET Duracion = ? WHERE IdMaterial = ?";
+                } else {
+                    JOptionPane.showMessageDialog(null, "Campo no válido para el tipo de material seleccionado.");
+                    return;
+                }
+                break;
+            default:
+                JOptionPane.showMessageDialog(null, "Campo no reconocido.");
+                return;
+        }
+
+        try {
+            conn = ConexionBD.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, nuevoValor);
+            pstmt.setString(2, idMaterial);
+            int filasAfectadas = pstmt.executeUpdate();
+
+            if (filasAfectadas > 0) {
+                JOptionPane.showMessageDialog(null, "Material actualizado exitosamente.");
+            } else {
+                JOptionPane.showMessageDialog(null, "No se pudo actualizar el material.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al actualizar el material: " + e.getMessage());
+        } finally {
+            try {
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void mostrarDetallesMaterial(String idMaterial) {
+        String query = "SELECT * FROM materiales WHERE IdMaterial = '" + idMaterial + "'";
+        try {
+            conn = ConexionBD.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+
+            if (rs.next()) {
+                StringBuilder detalles = new StringBuilder();
+                ResultSetMetaData metaData = rs.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                for (int i = 1; i <= columnCount; i++) {
+                    detalles.append(metaData.getColumnName(i)).append(": ").append(rs.getString(i)).append("\n");
+                }
+                JOptionPane.showMessageDialog(null, detalles.toString());
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontró el material con el ID especificado");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al mostrar los detalles del material: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (stmt != null) {
+                    stmt.close();
+                }
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
