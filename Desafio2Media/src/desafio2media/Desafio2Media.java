@@ -39,7 +39,7 @@ public class Desafio2Media extends JApplet {
     public static void Menu() {
         while (true) {
             if (mostrarMenu) {
-                String opcion = JOptionPane.showInputDialog("1. Agregar Material\n2. Modificar Material\n3. Listar Material\n4. Salir");
+                String opcion = JOptionPane.showInputDialog("1. Agregar Material\n2. Modificar Material\n3. Listar Material\n4. Eliminar Material \n5. Buscar Material \n6. Salir");
                 switch (opcion) {
                     case "1":
                         agregarMaterial();
@@ -52,6 +52,12 @@ public class Desafio2Media extends JApplet {
                         mostrarMenu = false;  // No mostrar el menú mientras se lista los materiales
                         break;
                     case "4":
+                        eliminarMaterial();
+                        break;
+                    case "5":
+                        buscarMaterial();
+                        break;
+                    case "6":
                         System.exit(0);
                     default:
                         JOptionPane.showMessageDialog(null, "Opción no válida");
@@ -471,4 +477,179 @@ public class Desafio2Media extends JApplet {
             }
         }
     }
+
+    public static void eliminarMaterial() {
+        String[] tiposDeMaterial = {"Libro", "Revista", "CD", "DVD", "Cancelar"};
+        String tipoMaterial = (String) JOptionPane.showInputDialog(null, "Seleccione el tipo de material que desea eliminar:", "Eliminar Material", JOptionPane.QUESTION_MESSAGE, null, tiposDeMaterial, tiposDeMaterial[0]);
+
+        if (tipoMaterial != null && !"Cancelar".equals(tipoMaterial)) {
+            String query = "SELECT materiales.IdMaterial, materiales.Titulo FROM materiales ";
+            switch (tipoMaterial) {
+                case "Libro":
+                    query += "INNER JOIN materiales_escritos ON materiales.IdMaterial = materiales_escritos.IdMaterial INNER JOIN libros ON materiales_escritos.IdMaterial = libros.IdMaterial";
+                    break;
+                case "Revista":
+                    query += "INNER JOIN materiales_escritos ON materiales.IdMaterial = materiales_escritos.IdMaterial INNER JOIN revistas ON materiales_escritos.IdMaterial = revistas.IdMaterial";
+                    break;
+                case "CD":
+                    query += "INNER JOIN materiales_audiovisuales ON materiales.IdMaterial = materiales_audiovisuales.IdMaterial INNER JOIN cds ON materiales_audiovisuales.IdMaterial = cds.IdMaterial";
+                    break;
+                case "DVD":
+                    query += "INNER JOIN materiales_audiovisuales ON materiales.IdMaterial = materiales_audiovisuales.IdMaterial INNER JOIN dvds ON materiales_audiovisuales.IdMaterial = dvds.IdMaterial";
+                    break;
+            }
+
+            try {
+                conn = ConexionBD.getConnection();
+                stmt = conn.createStatement();
+                rs = stmt.executeQuery(query);
+
+                DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+                while (rs.next()) {
+                    String idMaterial = rs.getString("IdMaterial");
+                    String titulo = rs.getString("Titulo");
+                    model.addElement(idMaterial + " - " + titulo);
+                }
+
+                JComboBox<String> comboBox = new JComboBox<>(model);
+                int resultado = JOptionPane.showConfirmDialog(null, comboBox, "Seleccione el material a eliminar:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+                if (resultado == JOptionPane.OK_OPTION) {
+                    String selectedItem = (String) comboBox.getSelectedItem();
+                    if (selectedItem != null) {
+                        String idMaterial = selectedItem.split(" - ")[0];
+                        eliminarMaterialDeBD(idMaterial, tipoMaterial);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error al obtener la lista de materiales: " + e.getMessage());
+            } finally {
+                try {
+                    if (rs != null) {
+                        rs.close();
+                    }
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                    if (conn != null) {
+                        conn.close();
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void eliminarMaterialDeBD(String idMaterial, String tipoMaterial) {
+        try {
+            conn = ConexionBD.getConnection();
+            conn.setAutoCommit(false);  // Iniciar transacción
+
+            // Eliminar registros relacionados en otras tablas primero
+            if ("Libro".equals(tipoMaterial) || "Revista".equals(tipoMaterial)) {
+                eliminarRegistro("DELETE FROM libros WHERE IdMaterial = ?", idMaterial);
+                eliminarRegistro("DELETE FROM revistas WHERE IdMaterial = ?", idMaterial);
+                eliminarRegistro("DELETE FROM materiales_escritos WHERE IdMaterial = ?", idMaterial);
+            } else if ("CD".equals(tipoMaterial) || "DVD".equals(tipoMaterial)) {
+                eliminarRegistro("DELETE FROM cds WHERE IdMaterial = ?", idMaterial);
+                eliminarRegistro("DELETE FROM dvds WHERE IdMaterial = ?", idMaterial);
+                eliminarRegistro("DELETE FROM materiales_audiovisuales WHERE IdMaterial = ?", idMaterial);
+            }
+
+            // Finalmente, eliminar el material
+            eliminarRegistro("DELETE FROM materiales WHERE IdMaterial = ?", idMaterial);
+
+            conn.commit();  // Confirmar transacción
+            JOptionPane.showMessageDialog(null, "Material eliminado exitosamente");
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();  // Revertir transacción en caso de error
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al eliminar el material: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (stmt != null) {
+                    stmt.close();
+                }
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void eliminarRegistro(String query, String idMaterial) throws SQLException {
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, idMaterial);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void buscarMaterial() {
+        String tituloBuscado = JOptionPane.showInputDialog("Ingrese el título o parte del título del material que desea buscar:");
+
+        if (tituloBuscado != null && !tituloBuscado.trim().isEmpty()) {
+            String query = "SELECT IdMaterial, Titulo FROM materiales WHERE Titulo LIKE ?";
+
+            try {
+                conn = ConexionBD.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(query);
+                pstmt.setString(1, "%" + tituloBuscado + "%");
+                rs = pstmt.executeQuery();
+
+                DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+                while (rs.next()) {
+                    String idMaterial = rs.getString("IdMaterial");
+                    String titulo = rs.getString("Titulo");
+                    model.addElement(idMaterial + " - " + titulo);
+                }
+
+                if (model.getSize() == 0) {
+                    JOptionPane.showMessageDialog(null, "No se encontraron materiales con ese título.");
+                    return;
+                }
+
+                JComboBox<String> comboBox = new JComboBox<>(model);
+                int resultado = JOptionPane.showConfirmDialog(null, comboBox, "Seleccione el material que desea ver:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+                if (resultado == JOptionPane.OK_OPTION) {
+                    String selectedItem = (String) comboBox.getSelectedItem();
+                    if (selectedItem != null) {
+                        String idMaterial = selectedItem.split(" - ")[0];
+                        mostrarDetallesMaterial(idMaterial);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error al buscar el material: " + e.getMessage());
+            } finally {
+                try {
+                    if (rs != null) {
+                        rs.close();
+                    }
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                    if (conn != null) {
+                        conn.close();
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
 }

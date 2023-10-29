@@ -8,7 +8,7 @@
   </information>
   <resources>
     <j2se version="1.6+" href="http://java.sun.com/products/autodl/j2se"/>
-    <jar href="Desafio2Media.jar" size="16297" download="eager" />
+    <jar href="Desafio2Media.jar" size="18127" download="eager" />
     <jar href="lib\mysql-connector-j-8.0.33.jar" size="2481560" download="eager" />
   </resources>
   <applet-desc  width="800" height="600" main-class="desafio2media.Desafio2Media"  name="Desafio2Media" >
