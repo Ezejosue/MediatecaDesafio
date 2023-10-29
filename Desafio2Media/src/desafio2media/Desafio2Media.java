@@ -5,7 +5,10 @@
  */
 package desafio2media;
 
+import desafio2media.Clases.CD;
+import desafio2media.Clases.DVD;
 import desafio2media.Clases.Libro;
+import desafio2media.Clases.Revista;
 import desafio2media.conexion.ConexionBD;
 import javax.swing.*;
 import java.awt.*;
@@ -82,13 +85,13 @@ public class Desafio2Media extends JApplet {
                 agregarLibro();
                 break;
             case 1:
-//                agregarRevista();
+                agregarRevista();
                 break;
             case 2:
-//                agregarCD();
+                agregarCD();
                 break;
             case 3:
-//                agregarDVD();
+                agregarDVD();
                 break;
             default:
                 JOptionPane.showMessageDialog(null, "Opción no válida");
@@ -151,6 +154,191 @@ public class Desafio2Media extends JApplet {
                 } catch (SQLException e) {
                     logger.error("Error al cerrar la conexión", e);
 
+                    JOptionPane.showMessageDialog(null, "Error al cerrar la conexión: " + e.getMessage());
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "No se pudo establecer la conexión con la base de datos");
+        }
+    }
+
+    public static void agregarRevista() {
+        String id = JOptionPane.showInputDialog("Ingrese el ID de la revista:");
+        String titulo = JOptionPane.showInputDialog("Ingrese el título de la revista:");
+        int idGenero = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del género de la revista:"));
+        int stock = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la cantidad en stock de la revista:"));
+        int idAutor = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del autor de la revista:"));
+        int idEditorial = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID de la editorial de la revista:"));
+        String periodicidad = JOptionPane.showInputDialog("Ingrese la periodicidad de la revista:");
+
+        Revista revista = new Revista(id, titulo, idGenero, stock, idAutor, idEditorial, periodicidad);
+        guardarRevistaEnBD(revista);
+    }
+
+    public static void guardarRevistaEnBD(Revista revista) {
+        Connection conexion = ConexionBD.getConnection();
+        if (conexion != null) {
+            try {
+                // Insertar en la tabla materiales
+                String sqlMaterial = "INSERT INTO materiales (IdMaterial, Titulo, IdGenero, Stock) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement psMaterial = conexion.prepareStatement(sqlMaterial)) {
+                    psMaterial.setString(1, revista.getId());
+                    psMaterial.setString(2, revista.getTitulo());
+                    psMaterial.setInt(3, revista.getIdGenero());
+                    psMaterial.setInt(4, revista.getStock());
+                    psMaterial.executeUpdate();
+                }
+
+                // Insertar en la tabla materiales_escritos
+                String sqlMaterialEscrito = "INSERT INTO materiales_escritos (IdMaterial, IdAutor, IdEditorial) VALUES (?, ?, ?)";
+                try (PreparedStatement psMaterialEscrito = conexion.prepareStatement(sqlMaterialEscrito)) {
+                    psMaterialEscrito.setString(1, revista.getId());
+                    psMaterialEscrito.setInt(2, revista.getIdAutor());
+                    psMaterialEscrito.setInt(3, revista.getIdEditorial());
+                    psMaterialEscrito.executeUpdate();
+                }
+
+                // Insertar en la tabla revistas
+                String sqlRevista = "INSERT INTO revistas (IdMaterial, Periodicidad) VALUES (?, ?)";
+                try (PreparedStatement psRevista = conexion.prepareStatement(sqlRevista)) {
+                    psRevista.setString(1, revista.getId());
+                    psRevista.setString(2, revista.getPeriodicidad());
+                    psRevista.executeUpdate();
+                }
+                logger.info("Revista agregada correctamente: " + revista);
+                JOptionPane.showMessageDialog(null, "Revista agregada exitosamente");
+            } catch (SQLException e) {
+                logger.error("Error al agregar la revista", e);
+                JOptionPane.showMessageDialog(null, "Error al agregar la revista: " + e.getMessage());
+            } finally {
+                try {
+                    if (conexion != null && !conexion.isClosed()) {
+                        conexion.close();
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error al cerrar la conexión", e);
+                    JOptionPane.showMessageDialog(null, "Error al cerrar la conexión: " + e.getMessage());
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "No se pudo establecer la conexión con la base de datos");
+        }
+    }
+
+    public static void agregarCD() {
+        String id = JOptionPane.showInputDialog("Ingrese el ID del CD:");
+        String titulo = JOptionPane.showInputDialog("Ingrese el título del CD:");
+        int idGenero = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del género del CD:"));
+        int stock = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la cantidad en stock del CD:"));
+        int duracion = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la duración del CD en minutos:"));
+        int numCanciones = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el número de canciones del CD:"));
+
+        CD cd = new CD(id, titulo, idGenero, stock, duracion, numCanciones);
+        guardarCDEnBD(cd);
+    }
+
+    public static void guardarCDEnBD(CD cd) {
+        Connection conexion = ConexionBD.getConnection();
+        if (conexion != null) {
+            try {
+                // Insertar en la tabla materiales
+                String sqlMaterial = "INSERT INTO materiales (IdMaterial, Titulo, IdGenero, Stock) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement psMaterial = conexion.prepareStatement(sqlMaterial)) {
+                    psMaterial.setString(1, cd.getId());
+                    psMaterial.setString(2, cd.getTitulo());
+                    psMaterial.setInt(3, cd.getIdGenero());
+                    psMaterial.setInt(4, cd.getStock());
+                    psMaterial.executeUpdate();
+                }
+
+                // Insertar en la tabla materiales_audiovisuales
+                String sqlMaterialAudiovisual = "INSERT INTO materiales_audiovisuales (IdMaterial, Duracion) VALUES (?, ?)";
+                try (PreparedStatement psMaterialAudiovisual = conexion.prepareStatement(sqlMaterialAudiovisual)) {
+                    psMaterialAudiovisual.setString(1, cd.getId());
+                    psMaterialAudiovisual.setInt(2, cd.getDuracion());
+                    psMaterialAudiovisual.executeUpdate();
+                }
+
+                // Insertar en la tabla cds
+                String sqlCD = "INSERT INTO cds (IdMaterial, NumCanciones) VALUES (?, ?)";
+                try (PreparedStatement psCD = conexion.prepareStatement(sqlCD)) {
+                    psCD.setString(1, cd.getId());
+                    psCD.setInt(2, cd.getNumCanciones());
+                    psCD.executeUpdate();
+                }
+                logger.info("CD agregado correctamente: " + cd);
+                JOptionPane.showMessageDialog(null, "CD agregado exitosamente");
+            } catch (SQLException e) {
+                logger.error("Error al agregar el CD", e);
+                JOptionPane.showMessageDialog(null, "Error al agregar el CD: " + e.getMessage());
+            } finally {
+                try {
+                    if (conexion != null && !conexion.isClosed()) {
+                        conexion.close();
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error al cerrar la conexión", e);
+                    JOptionPane.showMessageDialog(null, "Error al cerrar la conexión: " + e.getMessage());
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "No se pudo establecer la conexión con la base de datos");
+        }
+    }
+
+    public static void agregarDVD() {
+        String id = JOptionPane.showInputDialog("Ingrese el ID del DVD:");
+        String titulo = JOptionPane.showInputDialog("Ingrese el título del DVD:");
+        int idGenero = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del género del DVD:"));
+        int stock = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la cantidad en stock del DVD:"));
+        int duracion = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la duración del DVD en minutos:"));
+        int idDirector = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el ID del director del DVD:"));
+
+        DVD dvd = new DVD(id, titulo, idGenero, stock, duracion, idDirector);
+        guardarDVDEnBD(dvd);
+    }
+
+    public static void guardarDVDEnBD(DVD dvd) {
+        Connection conexion = ConexionBD.getConnection();
+        if (conexion != null) {
+            try {
+                // Insertar en la tabla materiales
+                String sqlMaterial = "INSERT INTO materiales (IdMaterial, Titulo, IdGenero, Stock) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement psMaterial = conexion.prepareStatement(sqlMaterial)) {
+                    psMaterial.setString(1, dvd.getId());
+                    psMaterial.setString(2, dvd.getTitulo());
+                    psMaterial.setInt(3, dvd.getIdGenero());
+                    psMaterial.setInt(4, dvd.getStock());
+                    psMaterial.executeUpdate();
+                }
+
+                // Insertar en la tabla materiales_audiovisuales
+                String sqlMaterialAudiovisual = "INSERT INTO materiales_audiovisuales (IdMaterial, Duracion) VALUES (?, ?)";
+                try (PreparedStatement psMaterialAudiovisual = conexion.prepareStatement(sqlMaterialAudiovisual)) {
+                    psMaterialAudiovisual.setString(1, dvd.getId());
+                    psMaterialAudiovisual.setInt(2, dvd.getDuracion());
+                    psMaterialAudiovisual.executeUpdate();
+                }
+
+                // Insertar en la tabla dvds
+                String sqlDVD = "INSERT INTO dvds (IdMaterial, IdDirector) VALUES (?, ?)";
+                try (PreparedStatement psDVD = conexion.prepareStatement(sqlDVD)) {
+                    psDVD.setString(1, dvd.getId());
+                    psDVD.setInt(2, dvd.getIdDirector());
+                    psDVD.executeUpdate();
+                }
+                logger.info("DVD agregado correctamente: " + dvd);
+                JOptionPane.showMessageDialog(null, "DVD agregado exitosamente");
+            } catch (SQLException e) {
+                logger.error("Error al agregar el DVD", e);
+                JOptionPane.showMessageDialog(null, "Error al agregar el DVD: " + e.getMessage());
+            } finally {
+                try {
+                    if (conexion != null && !conexion.isClosed()) {
+                        conexion.close();
+                    }
+                } catch (SQLException e) {
+                    logger.error("Error al cerrar la conexión", e);
                     JOptionPane.showMessageDialog(null, "Error al cerrar la conexión: " + e.getMessage());
                 }
             }
@@ -473,6 +661,7 @@ public class Desafio2Media extends JApplet {
 
         } catch (SQLException e) {
             e.printStackTrace();
+            logger.error("Error al listar los materiales " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Error al listar los materiales: " + e.getMessage());
         } finally {
             try {
@@ -575,6 +764,7 @@ public class Desafio2Media extends JApplet {
             eliminarRegistro("DELETE FROM materiales WHERE IdMaterial = ?", idMaterial);
 
             conn.commit();  // Confirmar transacción
+            logger.info("Material eliminado exitosamente" + idMaterial);
             JOptionPane.showMessageDialog(null, "Material eliminado exitosamente");
         } catch (SQLException e) {
             if (conn != null) {
@@ -585,6 +775,7 @@ public class Desafio2Media extends JApplet {
                 }
             }
             e.printStackTrace();
+            logger.error("Error al eliminar el material");
             JOptionPane.showMessageDialog(null, "Error al eliminar el material: " + e.getMessage());
         } finally {
             try {
@@ -646,6 +837,7 @@ public class Desafio2Media extends JApplet {
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
+                logger.error("Error al buscar el material");
                 JOptionPane.showMessageDialog(null, "Error al buscar el material: " + e.getMessage());
             } finally {
                 try {
