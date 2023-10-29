@@ -1,0 +1,24 @@
+2023-10-29 11:41:12 INFO  Desafio2Media:143 - Libro agregado correctamente: Libro{isbn=0987654}
+2023-10-29 12:13:00 ERROR Desafio2Media:209 - Error al agregar la revista
+java.sql.SQLIntegrityConstraintViolationException: Duplicate entry 'L002' for key 'materiales.PRIMARY'
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:118)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:122)
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:916)
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeUpdateInternal(ClientPreparedStatement.java:1061)
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeUpdateInternal(ClientPreparedStatement.java:1009)
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeLargeUpdate(ClientPreparedStatement.java:1320)
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeUpdate(ClientPreparedStatement.java:994)
+	at desafio2media.Desafio2Media.guardarRevistaEnBD(Desafio2Media.java:187)
+	at desafio2media.Desafio2Media.agregarRevista(Desafio2Media.java:173)
+	at desafio2media.Desafio2Media.agregarMaterial(Desafio2Media.java:86)
+	at desafio2media.Desafio2Media.Menu(Desafio2Media.java:51)
+	at desafio2media.Desafio2Media.main(Desafio2Media.java:41)
+2023-10-29 12:15:10 INFO  Desafio2Media:206 - Revista agregada correctamente: Revista{periodicidad=Mensual}
+2023-10-29 12:39:39 INFO  Desafio2Media:269 - CD agregado correctamente: CD{numCanciones=30}
+2023-10-29 12:40:08 INFO  Desafio2Media:330 - DVD agregado correctamente: DVD{idDirector=2}
+2023-10-29 13:03:45 INFO  Desafio2Media:144 - Libro agregado correctamente: Libro{isbn=1234567}
+2023-10-29 13:04:38 INFO  Desafio2Media:208 - Revista agregada correctamente: Revista{periodicidad=Mensual}
+2023-10-29 13:05:43 INFO  Desafio2Media:269 - CD agregado correctamente: CD{numCanciones=20}
+2023-10-29 13:06:38 INFO  Desafio2Media:330 - DVD agregado correctamente: DVD{idDirector=1}
+2023-10-29 13:08:15 INFO  Desafio2Media:483 - Material actualizado correctamente: 
+2023-10-29 13:08:50 INFO  Desafio2Media:767 - Material eliminado exitosamenteL014
