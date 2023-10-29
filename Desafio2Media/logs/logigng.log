@@ -16,3 +16,9 @@ java.sql.SQLIntegrityConstraintViolationException: Duplicate entry 'L002' for ke
 2023-10-29 12:15:10 INFO  Desafio2Media:206 - Revista agregada correctamente: Revista{periodicidad=Mensual}
 2023-10-29 12:39:39 INFO  Desafio2Media:269 - CD agregado correctamente: CD{numCanciones=30}
 2023-10-29 12:40:08 INFO  Desafio2Media:330 - DVD agregado correctamente: DVD{idDirector=2}
+2023-10-29 13:03:45 INFO  Desafio2Media:144 - Libro agregado correctamente: Libro{isbn=1234567}
+2023-10-29 13:04:38 INFO  Desafio2Media:208 - Revista agregada correctamente: Revista{periodicidad=Mensual}
+2023-10-29 13:05:43 INFO  Desafio2Media:269 - CD agregado correctamente: CD{numCanciones=20}
+2023-10-29 13:06:38 INFO  Desafio2Media:330 - DVD agregado correctamente: DVD{idDirector=1}
+2023-10-29 13:08:15 INFO  Desafio2Media:483 - Material actualizado correctamente: 
+2023-10-29 13:08:50 INFO  Desafio2Media:767 - Material eliminado exitosamenteL014
