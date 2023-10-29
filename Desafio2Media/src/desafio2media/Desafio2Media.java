@@ -19,12 +19,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Vector;
 import javax.swing.table.DefaultTableModel;
+import org.apache.log4j.Logger;
 
 /**
  *
  * @author Josue
  */
 public class Desafio2Media extends JApplet {
+
+    private static final Logger logger = Logger.getLogger(Desafio2Media.class);
 
     private static Connection conn;
     private static Statement stmt;
@@ -33,7 +36,9 @@ public class Desafio2Media extends JApplet {
     private static boolean mostrarMenu = true;
 
     public static void main(String[] args) {
+
         Menu();
+
     }
 
     public static void Menu() {
@@ -133,9 +138,10 @@ public class Desafio2Media extends JApplet {
                     psLibro.setString(2, libro.getIsbn());
                     psLibro.executeUpdate();
                 }
-
+                logger.info("Libro agregado correctamente: " + libro);
                 JOptionPane.showMessageDialog(null, "Libro agregado exitosamente");
             } catch (SQLException e) {
+                logger.error("Error al agregar el libro", e);
                 JOptionPane.showMessageDialog(null, "Error al agregar el libro: " + e.getMessage());
             } finally {
                 try {
@@ -143,6 +149,8 @@ public class Desafio2Media extends JApplet {
                         conexion.close();
                     }
                 } catch (SQLException e) {
+                    logger.error("Error al cerrar la conexión", e);
+
                     JOptionPane.showMessageDialog(null, "Error al cerrar la conexión: " + e.getMessage());
                 }
             }
@@ -197,6 +205,7 @@ public class Desafio2Media extends JApplet {
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
+                logger.error("Error al obtener la lista de materiales " + e);
                 JOptionPane.showMessageDialog(null, "Error al obtener la lista de materiales: " + e.getMessage());
             } finally {
                 try {
@@ -283,12 +292,16 @@ public class Desafio2Media extends JApplet {
             int filasAfectadas = pstmt.executeUpdate();
 
             if (filasAfectadas > 0) {
+                logger.info("Material actualizado correctamente: ");
+
                 JOptionPane.showMessageDialog(null, "Material actualizado exitosamente.");
             } else {
+                logger.info("No se pudo actualizar el material");
                 JOptionPane.showMessageDialog(null, "No se pudo actualizar el material.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            logger.error("Error actualizar el material " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Error al actualizar el material: " + e.getMessage());
         } finally {
             try {
